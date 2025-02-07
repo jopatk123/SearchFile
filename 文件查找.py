@@ -32,9 +32,18 @@ class LargeFileFinder(tk.Tk):
         self.browse_btn = ttk.Button(self.dir_frame, text="浏览", command=self.browse_directory)
         self.browse_btn.grid(row=0, column=2, padx=5)
         
+        # 添加文件类型过滤框架
+        self.filter_frame = ttk.LabelFrame(self.main_frame, text="文件类型过滤")
+        self.filter_frame.grid(row=1, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=5)
+        
+        self.filter_var = tk.StringVar()
+        self.filter_entry = ttk.Entry(self.filter_frame, textvariable=self.filter_var, width=30)
+        self.filter_entry.pack(side=tk.LEFT, padx=5)
+        ttk.Label(self.filter_frame, text="(用逗号分隔，例如: .mp4,.zip,.iso)").pack(side=tk.LEFT, padx=5)
+        
         # 文件大小限制部分
         self.size_frame = ttk.Frame(self.main_frame)
-        self.size_frame.grid(row=1, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=5)
+        self.size_frame.grid(row=2, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=5)
         
         self.size_label = ttk.Label(self.size_frame, text="大小限制(MB):")
         self.size_label.grid(row=0, column=0, padx=5)
@@ -45,16 +54,16 @@ class LargeFileFinder(tk.Tk):
         
         # 搜索按钮
         self.search_btn = ttk.Button(self.main_frame, text="开始搜索", command=self.start_search)
-        self.search_btn.grid(row=2, column=0, columnspan=3, pady=10)
+        self.search_btn.grid(row=3, column=0, columnspan=3, pady=10)
         
         # 进度条
         self.progress_var = tk.StringVar(value="准备就绪")
         self.progress_label = ttk.Label(self.main_frame, textvariable=self.progress_var)
-        self.progress_label.grid(row=3, column=0, columnspan=3, pady=5)
+        self.progress_label.grid(row=4, column=0, columnspan=3, pady=5)
         
         # 结果显示区域
         self.result_frame = ttk.Frame(self.main_frame)
-        self.result_frame.grid(row=4, column=0, columnspan=3, sticky=(tk.W, tk.E, tk.N, tk.S), pady=5)
+        self.result_frame.grid(row=5, column=0, columnspan=3, sticky=(tk.W, tk.E, tk.N, tk.S), pady=5)
         
         # 创建树形视图
         self.tree = ttk.Treeview(self.result_frame, columns=("size", "path"), show="headings")
@@ -74,13 +83,13 @@ class LargeFileFinder(tk.Tk):
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(0, weight=1)
         self.main_frame.grid_columnconfigure(0, weight=1)
-        self.main_frame.grid_rowconfigure(4, weight=1)
+        self.main_frame.grid_rowconfigure(5, weight=1)
         self.result_frame.grid_columnconfigure(0, weight=1)
         self.result_frame.grid_rowconfigure(0, weight=1)
         
         # 在按钮框架中添加批量选择功能
         self.button_frame = ttk.Frame(self.main_frame)
-        self.button_frame.grid(row=5, column=0, columnspan=3, pady=5)
+        self.button_frame.grid(row=6, column=0, columnspan=3, pady=5)
         
         # 添加全选/取消全选按钮
         self.select_all_btn = ttk.Button(
@@ -153,6 +162,9 @@ class LargeFileFinder(tk.Tk):
         size_limit = size_limit_mb * 1024 * 1024
         large_files = []
         
+        # 获取文件类型过滤列表
+        file_types = [ext.strip().lower() for ext in self.filter_var.get().split(',') if ext.strip()]
+        
         total_files = sum([len(files) for _, _, files in os.walk(directory)])
         processed_files = 0
         
@@ -160,8 +172,13 @@ class LargeFileFinder(tk.Tk):
             for file in files:
                 processed_files += 1
                 self.progress_var.set(f"正在搜索... ({processed_files}/{total_files})")
+                self.update_idletasks()  # 更新界面显示
                 
                 file_path = os.path.join(root, file)
+                # 检查文件类型
+                if file_types and not any(file.lower().endswith(ext) for ext in file_types):
+                    continue
+                    
                 try:
                     file_size = os.path.getsize(file_path)
                     if file_size > size_limit:
